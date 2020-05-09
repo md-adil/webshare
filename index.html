@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #label\:info {
+            color: blue;
+        }
+        #label\:error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <button id="btn:send">Send</button>
+    <button id="btn:receive">Receive</button>
+    <button id="btn:read">Read</button>
+    <button id="btn:close">Close</button>
+    <input type="file" id="input:file" />
+    <div id="label:info"></div>
+    <div id="label:error"></div>
+    <div>
+        <span id="label:progress"></span>&nbsp;Bytes&nbsp;|&nbsp;<span id="label:rate"></span> B/S
+    </div>
+    <script src="./src/index.ts"></script>
+</body>
+</html>
