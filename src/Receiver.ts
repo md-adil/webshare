@@ -60,7 +60,7 @@ class Receiver extends EventEmitter {
             });
         });
         peer.on("error", (err) => {
-            log("peer error, code", err);
+            log("peer error", err);
             console.log(err);
             this.emitError(err.message);
         });
