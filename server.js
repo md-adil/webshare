@@ -3,6 +3,7 @@ const config = {
     port: 4112
 }
 const peer = new PeerServer({
+    host: "0.0.0.0",
     port: config.port,
 });
 

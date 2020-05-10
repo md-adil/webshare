@@ -42,6 +42,11 @@ class Sender extends EventEmitter {
         
         peer.on("disconnected", () => {
             this.emit("disconnected");
+            console.log("reconnecting");
+            peer.reconnect()
+            if (this.isActive) {
+                console.log("Connection is active");
+            }
         });
 
         peer.on("open", id => {
@@ -51,6 +56,7 @@ class Sender extends EventEmitter {
 
         peer.on("connection", (connection) => {
             if (this.isConnected) {
+                console.log("Already connected, rejecting");
                 connection.close();
                 return;
             }
@@ -85,7 +91,6 @@ class Sender extends EventEmitter {
         connection.on("error", (err) => {
             this.isConnected = false;
             console.log("Connection error", err);
-            connection.close();
         });
     }
    
@@ -127,7 +132,6 @@ class Sender extends EventEmitter {
             console.log("Skipping chunk");
             return; 
         }
-        console.log("Setting transfer rate");
         const time = (new Date).getTime();
         const diff = (time - this.currentTime) / 1000;
         if (diff < 1) {
@@ -146,12 +150,14 @@ class Sender extends EventEmitter {
         this.setChunkSize();
         if (index < this.currentIndex && this.lastChunk) {
             this.connection.send(this.lastChunk);
+            console.log("sending last byte");
             return;
         }
         const chunks = this.lastChunk = await this.getChunks();
         this.bytesSend += chunks.byteLength;
         this.connection.send(chunks);
         this.emit("progress", this.file, this.bytesSend);
+        this.currentIndex ++;
         if (this.file.size === this.bytesSend) {
             this.isCompleted = true;
         }

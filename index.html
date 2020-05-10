@@ -11,6 +11,16 @@
         #label\:error {
             color: red;
         }
+        #container\:log {
+            border: 1px solid #BBB;
+            height: 400px;
+            overflow: auto;
+        }
+        #container\:log div {
+            padding: 10px;
+            font-size: 14px;
+            border-bottom: 1px solid #bbb;
+        }
     </style>
 </head>
 <body>
@@ -24,6 +34,8 @@
     <div>
         <span id="label:progress"></span>&nbsp;Bytes&nbsp;|&nbsp;<span id="label:rate"></span> B/S
     </div>
+
+    <div id="container:log"></div>
     <script src="./src/index.ts"></script>
 </body>
 </html>

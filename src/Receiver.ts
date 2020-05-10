@@ -3,13 +3,17 @@ import { EventEmitter } from "events";
 import peerConfig from "./config";
 import { EventTypes, FileEvent, IFileMeta } from "./types";
 import { sleep } from "./timer";
+import log from "./log";
+
 
 interface Receiver {
     on(event: "open", listener: (id: string) => void): this;
+    on(event: "close", listener: () => void): this;
     on(event: "disconnected", listener: () => void): this;
     on(event: "connect", listener: (connection: DataConnection) => void): this;
     on(event: "error", listener: (error: string) => void): this;
 
+    on(event: "transferrate", listener: (byte: number) => void): this;
     on(event: "incoming", listener: (file: File) => void): this;
     on(event: 'progress', listener: (file: File, bytes: number) => void): this;
     on(event: 'complete', listener: (file: File) => void): this;
@@ -17,7 +21,7 @@ interface Receiver {
 }
 
 class Receiver extends EventEmitter {
-    public readonly peer: Peer;
+    public peer: Peer;
     connection?: DataConnection;
     receiver?: any;
     file?: IFileMeta;
@@ -26,40 +30,60 @@ class Receiver extends EventEmitter {
     currentIndex = 0;
 
     public isCompleted = false;
+    peerId?: string;
     constructor(public readonly id: string) {
         super();
+        this.open();
+    }
+
+    open() {
         const peer = this.peer = new Peer(peerConfig);
         peer.on("open", id => {
+            this.peerId = id;
+            log("peer open", id);
             console.log("peer open", id);
             this.emit("open", id);
             this.connect();
         });
         peer.on("close", () => {
+            log("peer closed");
+            this.emit("close");
             this.emitError("peer closed");
         });
         peer.on("disconnected", () => {
+            log("peer disconnected");
             this.emit("disconnected");
-            console.log("reconnecting");
+            // peer.id = this.peerId
+            sleep(1000).then(() => {
+                log("recopening peer", peer.id);
+                peer.reconnect();
+            });
         });
         peer.on("error", (err) => {
+            log("peer error, code", err);
             console.log(err);
             this.emitError(err.message);
         });
     }
+
     private connect() {
         const connection = this.connection = this.peer.connect(this.id, {
             reliable: true,
         });
+        log("connecting...");
         connection.on("open", () => {
+            log("connection open");
             console.log("connected");
             this.emit("connect", this.connection);
             this.connected(connection);
         });
         connection.on("error", err => {
+            log("connection error", err);
             console.log("Connection failed, reconnecting...", err);
             this.connect();
         });
         connection.on("close", () => {
+            log("connection closed");
             console.log("Connection failed, reconnecting...");
             this.emitError("connection closed");
         });
