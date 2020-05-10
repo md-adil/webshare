@@ -1,6 +1,10 @@
 const logContainer = document.getElementById("container:log");
 
 export default function log(...messages: Array<string | Error>) {
+    if (!logContainer) {
+        console.log(...messages);
+        return;
+    }
     const item = document.createElement("div");
     for(const message of messages) {
         const span = document.createElement("span");

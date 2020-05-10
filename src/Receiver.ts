@@ -1,6 +1,5 @@
-import Peer, { DataConnection } from "peerjs";
+import Peer, { DataConnection, PeerJSOption } from "peerjs";
 import { EventEmitter } from "events";
-import peerConfig from "./config";
 import { EventTypes, FileEvent, IFileMeta } from "./types";
 import { sleep } from "./timer";
 import log from "./log";
@@ -10,82 +9,73 @@ interface Receiver {
     on(event: "open", listener: (id: string) => void): this;
     on(event: "close", listener: () => void): this;
     on(event: "disconnected", listener: () => void): this;
-    on(event: "connect", listener: (connection: DataConnection) => void): this;
+    on(event: "connected", listener: (connection: DataConnection) => void): this;
     on(event: "error", listener: (error: string) => void): this;
 
     on(event: "transferrate", listener: (byte: number) => void): this;
-    on(event: "incoming", listener: (file: File) => void): this;
-    on(event: 'progress', listener: (file: File, bytes: number) => void): this;
-    on(event: 'complete', listener: (file: File) => void): this;
-    on(event: "cancel", listener: (file: File) => void): this;
+    on(event: "incoming", listener: (file: IFileMeta) => void): this;
+    on(event: 'progress', listener: (file: IFileMeta, bytes: number) => void): this;
+    on(event: 'completed', listener: (file: File) => void): this;
+    on(event: "cancelled", listener: (file: IFileMeta) => void): this;
 }
 
 class Receiver extends EventEmitter {
-    public peer: Peer;
+    public peer?: Peer;
     connection?: DataConnection;
     receiver?: any;
-    file?: IFileMeta;
+    meta?: IFileMeta;
     data: Array<ArrayBuffer> = [];
     bytesReceived = 0;
     currentIndex = 0;
+    transferrate = 0;
+    file?: File;
 
     public isCompleted = false;
-    peerId?: string;
-    constructor(public readonly id: string) {
+    constructor(public peerConfig: PeerJSOption, public readonly id: string) {
         super();
         this.open();
     }
 
     open() {
-        const peer = this.peer = new Peer(peerConfig);
+        const peer = this.peer = new Peer(this.peerConfig);
         peer.on("open", id => {
-            this.peerId = id;
             log("peer open", id);
-            console.log("peer open", id);
             this.emit("open", id);
             this.connect();
         });
         peer.on("close", () => {
             log("peer closed");
             this.emit("close");
-            this.emitError("peer closed");
         });
         peer.on("disconnected", () => {
             log("peer disconnected");
-            this.emit("disconnected");
-            // peer.id = this.peerId
-            sleep(1000).then(() => {
-                log("recopening peer", peer.id);
-                peer.reconnect();
-            });
+            peer.reconnect();
         });
         peer.on("error", (err) => {
             log("peer error", err);
-            console.log(err);
-            this.emitError(err.message);
+            this.emit("error", err);
         });
     }
 
     private connect() {
-        const connection = this.connection = this.peer.connect(this.id, {
+        const connection = this.connection = this.peer!.connect(this.id, {
             reliable: true,
         });
         log("connecting...");
         connection.on("open", () => {
             log("connection open");
             console.log("connected");
-            this.emit("connect", this.connection);
+            this.emit("connected", this.connection);
             this.connected(connection);
         });
         connection.on("error", err => {
             log("connection error", err);
-            console.log("Connection failed, reconnecting...", err);
+            this.emit("error", err);
             this.connect();
         });
         connection.on("close", () => {
             log("connection closed");
-            console.log("Connection failed, reconnecting...");
-            this.emitError("connection closed");
+            this.emit("disconnected");
         });
     }
 
@@ -94,11 +84,16 @@ class Receiver extends EventEmitter {
             true;
         }
         if (data instanceof ArrayBuffer) {
-            console.log("Buffer received");
+            if (this.transferrate !== data.byteLength) {
+                this.transferrate = data.byteLength;
+                this.emit("transferrate", data.byteLength);
+            }
+
+            this.transferrate = data.byteLength;
             this.currentIndex ++;
             this.bytesReceived += data.byteLength;
             this.data.push(data);
-            this.emit("progress", this.file, this.bytesReceived);
+            this.emit("progress", this.meta, this.bytesReceived);
             this.connection?.send({
                 type: EventTypes.REQUEST,
                 index: this.currentIndex
@@ -112,7 +107,7 @@ class Receiver extends EventEmitter {
 
         if (data.type === EventTypes.START) {
             this.emit("incoming", data.meta);
-            this.file = data.meta;
+            this.meta = data.meta;
             console.log("meta data received, sending back", this.connection);
             this.connection?.send({
                 type: EventTypes.REQUEST,
@@ -132,13 +127,8 @@ class Receiver extends EventEmitter {
 
     handleCompleted() {
         this.isCompleted = true;
-        this.emit("complete", new File(this.data, this.file.name, { type: this.file.type }));
-    }
-    emitError(err: string) {
-        if (!this.isCompleted) {
-            return;
-        }
-        this.emit("error", err);
+        this.file = new File(this.data, this.meta!.name, { type: this.meta!.type });
+        this.emit("completed", this.file);
     }
 
     cancel() {
@@ -155,9 +145,18 @@ class Receiver extends EventEmitter {
     close() {
         this.connection?.close();
         sleep(1000).then(() => {
-            this.peer.destroy();
+            this.peer!.destroy();
         });
-        console.log("connection closed");
+        log("connection closed");
+    }
+
+    download() {
+        const url = URL.createObjectURL(this.file);
+        const a = document.createElement("a");
+        a.href = url;
+        a.setAttribute("download", this.file!.name);
+        a.click();
+        a.remove();
     }
 }
 

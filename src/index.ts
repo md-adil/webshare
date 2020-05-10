@@ -1,18 +1,27 @@
 import Sender from "./Sender";
 import Receiver from "./Receiver";
-import readerStream from "filereader-stream";
 import { humanFileSize } from "./util";
 import log from "./log";
 
-const labelInfo = document.getElementById("label:info");
-const labelError = document.getElementById("label:error");
-const btnSend = document.getElementById("btn:send");
-const btnReceive = document.getElementById("btn:receive");
+const labelInfo = document.getElementById("label:info")!;
+const labelError = document.getElementById("label:error")!;
+const btnSend = document.getElementById("btn:send")!;
+const btnReceive = document.getElementById("btn:receive")!;
 const input = document.getElementById("input:file") as HTMLInputElement;
-const labelProgress = document.getElementById("label:progress");
-const labelRate = document.getElementById("label:rate");
+const labelProgress = document.getElementById("label:progress")!;
+const labelRate = document.getElementById("label:rate")!;
+
+
+const peerConfig = {
+    host: "192.168.43.155",
+    port: 4112
+};
+
 let file: File;
 input.addEventListener("change", (e) => {
+    if (!input.files) {
+        return;
+    }
     file = input.files[0];
     sendfile(input.files[0]);
 });
@@ -22,12 +31,15 @@ const generateId = () => (new Date()).getTime().toString();
 let sender: Sender;
 const sendfile = (file: File) => {
     const id = "sender";
-    sender = new Sender(id, file);
+    sender = new Sender(peerConfig, file, id);
     sender.on("open", (id) => {
         labelInfo.innerText = `Connection opened at ${id}`
     });
-    sender.on("connect", connection => {
+    sender.on("connected", connection => {
         labelInfo.innerText = `Connection with connection id ${connection.label}`;
+    });
+    sender.on("disconnected", () => {
+        labelInfo.innerText = `Disconnected`;
     });
     sender.on("error", err => {
         labelError.innerText = err;
@@ -38,7 +50,7 @@ const sendfile = (file: File) => {
     sender.on("progress", (f, byte) => {
         labelProgress.innerText = `${humanFileSize(byte)} / ${humanFileSize(f.size)}`;
     })
-    sender.on("complete", () => {
+    sender.on("completed", () => {
         labelInfo.innerText = "File has been sent successfully";
     })
 }
@@ -50,11 +62,11 @@ const receiveFile = () => {
         labelError.innerText = "Connection id is required";
         return;
     }
-    receiver = new Receiver(id);
+    receiver = new Receiver(peerConfig, id);
     receiver.on("open", rId => {
         labelInfo.innerText = `Receiver is open on ${rId}`;
     });
-    receiver.on("connect", connection => {
+    receiver.on("connected", connection => {
         labelInfo.innerText = `Receiver is connected ${connection.label}`;
         labelError.innerText = "";
     });
@@ -70,22 +82,13 @@ const receiveFile = () => {
     receiver.on("progress", (f, byte) => {
         labelProgress.innerText = `${humanFileSize(byte)} / ${humanFileSize(f.size)}`;
     })
-    receiver.on("complete", file => {
+    receiver.on("completed", file => {
         console.log(file)
-        download(file);
+        receiver.download();
     });
     receiver.on("transferrate", byte => {
         labelRate.innerText = humanFileSize(byte);
     });
-}
-
-
-const download = (file: File) => {
-    const url = URL.createObjectURL(file);
-    const a = document.createElement("a");
-    a.href = url;
-    a.setAttribute("download", file.name);
-    a.click();
 }
 
 const handleClose = () => {
@@ -93,6 +96,5 @@ const handleClose = () => {
     sender && sender.close();
 }
 
-
 btnReceive.addEventListener("click", receiveFile);
-document.getElementById("btn:close").addEventListener("click", handleClose);
+document.getElementById("btn:close")!.addEventListener("click", handleClose);
