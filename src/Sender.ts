@@ -155,6 +155,7 @@ class Sender extends EventEmitter {
             type: EventTypes.END
         });
         this.emit("completed", this.file);
+        this.close();
     }
 
     async getChunks() {
@@ -179,6 +180,7 @@ class Sender extends EventEmitter {
         this.connection?.send({
             type: EventTypes.CANCEL
         })
+        this.close();
         return this;
     }
 

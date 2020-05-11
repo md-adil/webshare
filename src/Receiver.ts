@@ -134,8 +134,8 @@ class Receiver extends EventEmitter {
 
     handleCompleted() {
         this.isCompleted = true;
-        this.file = new File(this.data, this.meta!.name, { type: this.meta!.type });
-        this.emit("completed", this.file);
+        this.emit("completed", new File(this.data, this.meta!.name, { type: this.meta!.type }));
+        this.data = [];
     }
 
     cancel() {
@@ -157,8 +157,8 @@ class Receiver extends EventEmitter {
         log("connection closed");
     }
 
-    download() {
-        const url = URL.createObjectURL(this.file);
+    download(file: File) {
+        const url = URL.createObjectURL(file);
         const a = document.createElement("a");
         a.href = url;
         a.setAttribute("download", this.file!.name);
