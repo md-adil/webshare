@@ -31,6 +31,7 @@ class Receiver extends EventEmitter {
     file?: File;
 
     public isCompleted = false;
+    public isCancelled = false;
     constructor(public peerConfig: PeerJSOption, public readonly id: string) {
         super();
         this.open();
@@ -79,17 +80,23 @@ class Receiver extends EventEmitter {
         });
     }
 
+    get isActive() {
+        return !this.isCompleted && !this.isCompleted;
+    }
+
     private handleData = (data: ArrayBuffer | FileEvent) => {
+        if (this.isCancelled) {
+            return;
+        }
         if (this.isCompleted) {
-            true;
+            return;
         }
         if (data instanceof ArrayBuffer) {
             if (this.transferrate !== data.byteLength) {
                 this.transferrate = data.byteLength;
-                this.emit("transferrate", data.byteLength);
+                this.emit("transferrate", this.transferrate);
             }
 
-            this.transferrate = data.byteLength;
             this.currentIndex ++;
             this.bytesReceived += data.byteLength;
             this.data.push(data);
@@ -116,7 +123,7 @@ class Receiver extends EventEmitter {
         }
 
         if (data.type === EventTypes.CANCEL) {
-            this.isCompleted = true;
+            this.isCancelled = true;
             this.emit("cancel");
         }
     }
@@ -132,7 +139,7 @@ class Receiver extends EventEmitter {
     }
 
     cancel() {
-        this.isCompleted = true;
+        this.isCancelled = true;
         this.connection?.send({
             type: EventTypes.CANCEL
         });
