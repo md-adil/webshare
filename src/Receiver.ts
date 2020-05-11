@@ -10,7 +10,7 @@ interface Receiver {
     on(event: "close", listener: () => void): this;
     on(event: "disconnected", listener: () => void): this;
     on(event: "connected", listener: (connection: DataConnection) => void): this;
-    on(event: "error", listener: (error: string) => void): this;
+    on(event: "error", listener: (error: Error) => void): this;
 
     on(event: "transferrate", listener: (byte: number) => void): this;
     on(event: "incoming", listener: (file: IFileMeta) => void): this;

@@ -8,7 +8,7 @@ interface Sender {
     on(event: "close", listener: () => void): this;
     on(event: "disconnected", listener: () => void): this;
     on(event: "connected", listener: (connection: DataConnection) => void): this;
-    on(event: "error", listener: (error: string) => void): this;
+    on(event: "error", listener: (error: Error) => void): this;
 
     on(event: "transferrate", listener: (bytes: number) => void): this;
     on(event: 'progress', listener: (file: File, bytes: number) => void): this;
@@ -81,6 +81,13 @@ class Sender extends EventEmitter {
    
     connected() {
         this.connection?.on("data", this.handleData);
+        if (this.isCancelled) {
+            this.connection?.send({
+                type: EventTypes.CANCEL
+            });
+            return;
+        }
+
         this.connection?.send({
             type: EventTypes.START,
             meta: {
