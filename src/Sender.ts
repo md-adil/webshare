@@ -71,6 +71,13 @@ class Sender extends EventEmitter {
         connection.on("close", () => {
             this.isConnected = false;
             this.emit("disconnected");
+            if (this.isActive) {
+                this.isCancelled = true;
+                this.emit("cancelled");
+            }
+            sleep(1000).then(() => {
+                this.peer.destroy();
+            });
         });
         
         connection.on("error", (err) => {
@@ -155,7 +162,6 @@ class Sender extends EventEmitter {
             type: EventTypes.END
         });
         this.emit("completed", this.file);
-        this.close();
     }
 
     async getChunks() {
@@ -177,10 +183,13 @@ class Sender extends EventEmitter {
 
     cancel() {
         this.isCancelled = true;
-        this.connection?.send({
-            type: EventTypes.CANCEL
-        })
-        this.close();
+        if (this.connection) {
+            this.connection.send({
+                type: EventTypes.CANCEL
+            });
+        } else {
+            this.close();
+        }
         return this;
     }
 

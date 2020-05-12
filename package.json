@@ -5,7 +5,6 @@
   "license": "MIT",
   "dependencies": {
     "peer": "^0.5.2",
-    "peer-file": "^0.0.6",
     "peerjs": "^1.2.0"
   },
   "devDependencies": {

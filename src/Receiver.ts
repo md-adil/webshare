@@ -11,7 +11,7 @@ interface Receiver {
     on(event: "disconnected", listener: () => void): this;
     on(event: "connected", listener: (connection: DataConnection) => void): this;
     on(event: "error", listener: (error: Error) => void): this;
-
+    on(event: "reconnect", listener: () => void): this;
     on(event: "transferrate", listener: (byte: number) => void): this;
     on(event: "incoming", listener: (file: IFileMeta) => void): this;
     on(event: 'progress', listener: (file: IFileMeta, bytes: number) => void): this;
@@ -28,7 +28,6 @@ class Receiver extends EventEmitter {
     bytesReceived = 0;
     currentIndex = 0;
     transferrate = 0;
-    file?: File;
 
     public isCompleted = false;
     public isCancelled = false;
@@ -55,6 +54,10 @@ class Receiver extends EventEmitter {
         peer.on("error", (err) => {
             log("peer error", err);
             this.emit("error", err);
+            if (this.isActive) {
+                this.isCancelled = true;
+                this.emit("cancelled");
+            }
         });
     }
 
@@ -72,11 +75,16 @@ class Receiver extends EventEmitter {
         connection.on("error", err => {
             log("connection error", err);
             this.emit("error", err);
+            this.emit("reconnect");
             this.connect();
         });
         connection.on("close", () => {
             log("connection closed");
             this.emit("disconnected");
+            if (this.isActive) {
+                this.isCancelled = true;
+                this.emit("cancelled");
+            }
         });
     }
 
@@ -125,6 +133,7 @@ class Receiver extends EventEmitter {
         if (data.type === EventTypes.CANCEL) {
             this.isCancelled = true;
             this.emit("cancel");
+            this.close();
         }
     }
 
@@ -136,6 +145,7 @@ class Receiver extends EventEmitter {
         this.isCompleted = true;
         this.emit("completed", new File(this.data, this.meta!.name, { type: this.meta!.type }));
         this.data = [];
+        this.close();
     }
 
     cancel() {
@@ -161,7 +171,7 @@ class Receiver extends EventEmitter {
         const url = URL.createObjectURL(file);
         const a = document.createElement("a");
         a.href = url;
-        a.setAttribute("download", this.file!.name);
+        a.setAttribute("download", file.name);
         a.click();
         a.remove();
     }
