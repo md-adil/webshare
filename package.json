@@ -4,10 +4,10 @@
   "main": "src",
   "license": "MIT",
   "dependencies": {
-    "peer": "^0.5.2",
     "peerjs": "^1.2.0"
   },
   "devDependencies": {
+    "peer": "^0.5.2",
     "typescript": "^3.8.3"
   }
 }
