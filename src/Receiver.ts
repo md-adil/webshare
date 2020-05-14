@@ -53,10 +53,10 @@ class Receiver extends EventEmitter {
         });
         peer.on("error", (err) => {
             log("peer error", err);
-            this.emit("error", err);
             if (this.isActive) {
                 this.isCancelled = true;
                 this.emit("cancelled");
+                this.emit("error", err);
             }
         });
     }
@@ -74,9 +74,11 @@ class Receiver extends EventEmitter {
         });
         connection.on("error", err => {
             log("connection error", err);
-            this.emit("error", err);
-            this.emit("reconnect");
-            this.connect();
+            if (this.isActive) {
+                this.emit("error", err);
+                this.emit("reconnect");
+                this.connect();
+            }
         });
         connection.on("close", () => {
             log("connection closed");
@@ -140,6 +142,7 @@ class Receiver extends EventEmitter {
             return; 
         }
         const diff = (time - this.currentTime) / 1000;
+        this.currentTime = time;
         this.emit("transferrate", bytes / diff);
     }
 

@@ -35,7 +35,9 @@ class Sender extends EventEmitter {
         });
 
         peer.on("error", err => {
-            this.emit("error", err);
+            if (this.isActive) {
+                this.emit("error", err);
+            }
         });
         
         peer.on("disconnected", () => {
@@ -82,7 +84,9 @@ class Sender extends EventEmitter {
         
         connection.on("error", (err) => {
             this.isConnected = false;
-            this.emit("error", err);
+            if (this.isActive) {
+                this.emit("error", err);
+            }
         });
     }
    
