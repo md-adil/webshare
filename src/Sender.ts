@@ -124,18 +124,17 @@ class Sender extends EventEmitter {
     }
 
     setChunkSize() {
+        const time = (new Date).getTime();
         if (!this.currentTime) {
-            this.currentTime = (new Date).getTime();
+            this.currentTime = time;
             return; 
         }
-        const time = (new Date).getTime();
         const diff = (time - this.currentTime) / 1000;
+        this.emit("transferrate", this.chunkSize / diff);
         if (diff < 1) {
             this.chunkSize *= 2;
-            this.emit("transferrate", this.chunkSize);
         } else if (diff > 2) {
             this.chunkSize /= 2;
-            this.emit("transferrate", this.chunkSize);
         }
         this.currentTime = time;
     }

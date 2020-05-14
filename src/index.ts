@@ -42,7 +42,7 @@ const sendfile = (file: File) => {
         labelInfo.innerText = `Disconnected`;
     });
     sender.on("error", err => {
-        labelError.innerText = err;
+        labelError.innerText = err.message;
     });
     sender.on("transferrate", rate => {
         labelRate.innerText = humanFileSize(rate);
@@ -77,14 +77,14 @@ const receiveFile = () => {
         labelError.innerText = "Closed connection";
     })
     receiver.on("error", err => {
-        labelError.innerText = err;
+        labelError.innerText = err.message;
     });
     receiver.on("progress", (f, byte) => {
         labelProgress.innerText = `${humanFileSize(byte)} / ${humanFileSize(f.size)}`;
     })
     receiver.on("completed", file => {
         console.log(file)
-        receiver.download();
+        receiver.download(file);
     });
     receiver.on("transferrate", byte => {
         labelRate.innerText = humanFileSize(byte);

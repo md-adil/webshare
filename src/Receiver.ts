@@ -27,7 +27,7 @@ class Receiver extends EventEmitter {
     data: Array<ArrayBuffer> = [];
     bytesReceived = 0;
     currentIndex = 0;
-    transferrate = 0;
+    currentTime = 0;
 
     public isCompleted = false;
     public isCancelled = false;
@@ -100,11 +100,7 @@ class Receiver extends EventEmitter {
             return;
         }
         if (data instanceof ArrayBuffer) {
-            if (this.transferrate !== data.byteLength) {
-                this.transferrate = data.byteLength;
-                this.emit("transferrate", this.transferrate);
-            }
-
+            this.transferRate(data.byteLength);
             this.currentIndex ++;
             this.bytesReceived += data.byteLength;
             this.data.push(data);
@@ -135,6 +131,16 @@ class Receiver extends EventEmitter {
             this.emit("cancel");
             this.close();
         }
+    }
+
+    transferRate(bytes: number) {
+        const time = (new Date).getTime();
+        if (!this.currentTime) {
+            this.currentTime = time;
+            return; 
+        }
+        const diff = (time - this.currentTime) / 1000;
+        this.emit("transferrate", bytes / diff);
     }
 
     connected(connection: DataConnection) {
