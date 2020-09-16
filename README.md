@@ -1,3 +1,4 @@
+```js
 import Sender from "./Sender";
 import Receiver from "./Receiver";
 import { humanFileSize } from "./util";
@@ -97,3 +98,5 @@ const handleClose = () => {
 
 btnReceive.addEventListener("click", receiveFile);
 document.getElementById("btn:close")!.addEventListener("click", handleClose);
+
+``
