@@ -1,13 +1,17 @@
 {
-  "name": "webshare",
-  "version": "1.0.0",
-  "main": "src",
-  "license": "MIT",
-  "dependencies": {
-    "peerjs": "^1.2.0"
-  },
-  "devDependencies": {
-    "peer": "^0.5.2",
-    "typescript": "^3.8.3"
-  }
+    "name": "webshare",
+    "version": "0.0.1",
+    "main": "build/index.js",
+    "license": "MIT",
+    "dependencies": {
+        "peerjs": "^1.2.0"
+    },
+    "devDependencies": {
+        "peer": "^0.5.2",
+        "typescript": "^4.0.3"
+    },
+    "scripts": {
+        "build": "tsc --build",
+        "watch": "tsc --build -w"
+    }
 }
