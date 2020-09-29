@@ -1,4 +1,4 @@
-export  const humanFileSize = (bytes: number) => {
+export const humanFileSize = (bytes: number) => {
     var thresh = 1024;
     if(Math.abs(bytes) < thresh) {
         return bytes + ' B';
