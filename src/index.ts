@@ -1,3 +1,3 @@
-export { default as Sender } from "./Sender";
-export { default as Receiver } from "./Receiver";
+export { default as Sender } from "./sender";
+export { default as Receiver } from "./receiver";
 export { humanFileSize } from "./util";

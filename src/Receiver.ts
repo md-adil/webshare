@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { EventTypes, FileEvent, IFileMeta } from "./types";
 import { sleep } from "./timer";
 import log from "./log";
-
+import { getTotal, isLastInBlock } from "./chunks";
 
 interface Receiver {
     on(event: "open", listener: (id: string) => void): this;
@@ -31,6 +31,7 @@ class Receiver extends EventEmitter {
 
     public isCompleted = false;
     public isCancelled = false;
+    chunks?: number;
     constructor(public peerConfig: PeerJSOption, public readonly id: string) {
         super();
         this.open();
@@ -64,6 +65,7 @@ class Receiver extends EventEmitter {
     private connect() {
         const connection = this.connection = this.peer!.connect(this.id, {
             reliable: true,
+            serialization: 'none'
         });
         log("connecting...");
         connection.on("open", () => {
@@ -103,29 +105,25 @@ class Receiver extends EventEmitter {
         }
         if (data instanceof ArrayBuffer) {
             this.transferRate(data.byteLength);
-            this.currentIndex ++;
             this.bytesReceived += data.byteLength;
             this.data.push(data);
             this.emit("progress", this.meta, this.bytesReceived);
-            this.connection?.send({
-                type: EventTypes.REQUEST,
-                index: this.currentIndex
-            });
+            if (this.chunks === this.currentIndex) {
+                this.connection?.send(EventTypes.COMPLETED);
+                return this.handleCompleted();
+            }
+            if (isLastInBlock(this.chunks!, this.currentIndex)) {
+                this.connection?.send(++this.currentIndex);
+            }
             return;
-        }
-
-        if (data.type === EventTypes.END) {
-            this.handleCompleted();
         }
 
         if (data.type === EventTypes.START) {
             this.emit("incoming", data.meta);
             this.meta = data.meta;
             console.log("meta data received, sending back", this.connection);
-            this.connection?.send({
-                type: EventTypes.REQUEST,
-                index: this.currentIndex
-            })
+            this.chunks = getTotal(data.meta.size);
+            this.connection?.send(this.currentIndex)
         }
 
         if (data.type === EventTypes.CANCEL) {

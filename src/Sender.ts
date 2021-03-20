@@ -1,7 +1,9 @@
 import { EventEmitter } from "events";
 import Peer, { DataConnection, PeerJSOption } from "peerjs";
-import { EventTypes, FileEvent } from "./types";
+import { EventTypes, FileEvent, ReceiverEvent } from "./types";
 import { sleep } from "./timer";
+import _chunk from "lodash/chunk";
+import { getBlock, getTotal, slice } from "./chunks";
 
 interface Sender {
     on(event: "open", listener: (id: string) => void): this;
@@ -20,15 +22,15 @@ class Sender extends EventEmitter {
     peer: Peer;
     connection?: DataConnection;
     public isConnected = false;
-    currentIndex =  0;
     lastChunk?: ArrayBuffer;
     chunkSize = Math.pow(2, 13);
     currentTime = 0;
-    bytesSend = 0;
     isCompleted = false;
     isCancelled = false;
+    chunks: number;
     constructor(public readonly peerConfig: PeerJSOption, private readonly file: File, public readonly id?: string) {
         super();
+        this.chunks = getTotal(file.size);
         const peer = this.peer = new Peer(id, peerConfig);
         peer.on("close", () => {
             this.emit("close");
@@ -109,67 +111,34 @@ class Sender extends EventEmitter {
         });
     }
 
-    handleData = (data: FileEvent) => {
-        if (data.type === EventTypes.REQUEST) {
-            if (this.isCancelled) {
-                return;
-            }
-            if (this.isCompleted) {
-                this.handleSent();
-                return;
-            }
-            this.sendChunks(data.index);
-        }
-
-        if (data.type === EventTypes.CANCEL) {
+    handleData = (data: ReceiverEvent) => {
+        if (data === EventTypes.CANCEL) {
             this.isCancelled = true;
             this.emit("cancelled");
+            return;
         }
-    }
-
-    setChunkSize() {
-        const time = (new Date).getTime();
-        if (!this.currentTime) {
-            this.currentTime = time;
-            return; 
+        if (data === EventTypes.COMPLETED) {
+            return this.handleSent();
         }
-        const diff = (time - this.currentTime) / 1000;
-        this.emit("transferrate", this.chunkSize / diff);
-        if (diff < 1) {
-            this.chunkSize *= 2;
-        } else if (diff > 2) {
-            this.chunkSize /= 2;
+        if (data >= 0) {
+            this.sendChunks(data as number);
         }
-        this.currentTime = time;
     }
 
     async sendChunks(index: number) {
-        this.setChunkSize();
-        if (index < this.currentIndex && this.lastChunk) {
-            this.connection!.send(this.lastChunk);
-            console.log("sending last byte");
-            return;
-        }
-        const chunks = this.lastChunk = await this.getChunks();
-        this.bytesSend += chunks.byteLength;
-        this.connection!.send(chunks);
-        this.emit("progress", this.file, this.bytesSend);
-        this.currentIndex ++;
-        if (this.file.size === this.bytesSend) {
-            this.isCompleted = true;
+        const block = await this.getChunks(...getBlock(index));
+        for (const chunks of slice(block)) {
+            this.connection!.send(chunks);
         }
     }
 
     handleSent() {
-        this.connection!.send({
-            type: EventTypes.END
-        });
         this.emit("completed", this.file);
     }
 
-    async getChunks() {
+    async getChunks(from: number, to: number) {
         const reader = new FileReader();
-        const promise = new Promise<ArrayBuffer>((resolve, reject) => {
+        const buffers = new Promise<ArrayBuffer>((resolve, reject) => {
             reader.onload = () => {
                 resolve(reader.result as ArrayBuffer);
             }
@@ -177,11 +146,10 @@ class Sender extends EventEmitter {
                 reject(reader.error);
             }
         })
-
         reader.readAsArrayBuffer(this.file.slice(
-            this.bytesSend, this.bytesSend + this.chunkSize
+            from, Math.min(to, this.file.size)
         ));
-        return promise;
+        return buffers;
     }
 
     cancel() {

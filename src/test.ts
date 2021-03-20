@@ -1,5 +1,5 @@
-import Sender from "./Sender";
-import Receiver from "./Receiver";
+import 'babel-regenerator-runtime';
+import { Sender, Receiver } from "./";
 import { humanFileSize } from "./util";
 
 const labelInfo = document.getElementById("label:info")!;
@@ -12,7 +12,7 @@ const labelRate = document.getElementById("label:rate")!;
 
 
 const peerConfig = {
-    host: "192.168.43.155",
+    host: "localhost",
     port: 4112
 };
 
@@ -22,13 +22,13 @@ input.addEventListener("change", (e) => {
         return;
     }
     file = input.files[0];
-    sendfile(input.files[0]);
+    sendFile(input.files[0]);
 });
 
 
 const generateId = () => (new Date()).getTime().toString();
 let sender: Sender;
-const sendfile = (file: File) => {
+const sendFile = (file: File) => {
     const id = "sender";
     sender = new Sender(peerConfig, file, id);
     sender.on("open", (id) => {

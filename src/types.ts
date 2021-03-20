@@ -1,9 +1,11 @@
+
+
 export enum EventTypes {
     START = "file:start",
     END = "file:end",
     PAUSE = "file:pause",
-    REQUEST = "file:req",
-    CANCEL = "file:cancel"
+    CANCEL = -9,
+    COMPLETED = -1
 }
 
 export interface IFileMeta {
@@ -20,14 +22,12 @@ interface IStart {
 interface IEnd {
     type: EventTypes.END,
 }
-interface IRequest {
-    type: EventTypes.REQUEST,
-    index: number
-}
+
 interface ICancel {
     type: EventTypes.CANCEL
 }
 
-export type FileEvent = IStart | IEnd | IRequest | ICancel;
+export type FileEvent = IStart | IEnd | ICancel 
 
 
+export type ReceiverEvent = number | EventTypes.CANCEL | EventTypes.COMPLETED;
