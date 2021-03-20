@@ -1,5 +1,5 @@
-export const CHUNK_SIZE = 16;
-export const CHUNKS_PER_REQ = 3;
+export const CHUNK_SIZE = 1600;
+export const CHUNKS_PER_REQ = 64;
 
 export function getBlock(index: number): [ number, number ] {
     const from = index * CHUNK_SIZE;
@@ -23,6 +23,7 @@ export function isLastInBlock(total: number, index: number) {
     return index % CHUNKS_PER_REQ === 0 || total === index;
 }
 
-for (const buf of slice(new ArrayBuffer(48))) {
-    console.log(buf);
+export function getBytesPerSecond(start: number, finish: number) {
+    const bytes = CHUNK_SIZE * CHUNKS_PER_REQ;
+    return bytes / ((finish - start) / 1000)
 }

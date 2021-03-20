@@ -2,8 +2,8 @@ export declare enum EventTypes {
     START = "file:start",
     END = "file:end",
     PAUSE = "file:pause",
-    REQUEST = "file:req",
-    CANCEL = "file:cancel"
+    CANCEL = -9,
+    COMPLETED = -1
 }
 export interface IFileMeta {
     name: string;
@@ -18,13 +18,10 @@ interface IStart {
 interface IEnd {
     type: EventTypes.END;
 }
-interface IRequest {
-    type: EventTypes.REQUEST;
-    index: number;
-}
 interface ICancel {
     type: EventTypes.CANCEL;
 }
-export declare type FileEvent = IStart | IEnd | IRequest | ICancel;
+export declare type FileEvent = IStart | IEnd | ICancel;
+export declare type ReceiverEvent = number | EventTypes.CANCEL | EventTypes.COMPLETED;
 export {};
 //# sourceMappingURL=types.d.ts.map

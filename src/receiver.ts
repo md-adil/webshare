@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { EventTypes, FileEvent, IFileMeta } from "./types";
 import { sleep } from "./timer";
 import log from "./log";
-import { getTotal, isLastInBlock } from "./chunks";
+import { getBytesPerSecond, getTotal, isLastInBlock } from "./chunks";
 
 interface Receiver {
     on(event: "open", listener: (id: string) => void): this;
@@ -97,7 +97,6 @@ class Receiver extends EventEmitter {
     }
 
     private handleData = (data: ArrayBuffer | string) => {
-        console.log({data});
         if (this.isCancelled) {
             return;
         }
@@ -106,7 +105,6 @@ class Receiver extends EventEmitter {
         }
         if (data instanceof ArrayBuffer) {
             this.currentIndex++;
-            this.transferRate(data.byteLength);
             this.bytesReceived += data.byteLength;
             this.data.push(data);
             this.emit("progress", this.meta, this.bytesReceived);
@@ -115,7 +113,7 @@ class Receiver extends EventEmitter {
                 return this.handleCompleted();
             }
             if (isLastInBlock(this.chunks!, this.currentIndex)) {
-                console.log('Last in block', this.currentIndex);
+                this.transferRate(data.byteLength);
                 this.connection?.send(this.currentIndex);
             }
             return;
@@ -142,9 +140,9 @@ class Receiver extends EventEmitter {
             this.currentTime = time;
             return; 
         }
-        const diff = (time - this.currentTime) / 1000;
+        const rate = getBytesPerSecond(this.currentTime, time);
         this.currentTime = time;
-        this.emit("transferrate", bytes / diff);
+        this.emit("transferrate", rate);
     }
 
     connected(connection: DataConnection) {
