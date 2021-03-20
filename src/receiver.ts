@@ -105,6 +105,7 @@ class Receiver extends EventEmitter {
             return;
         }
         if (data instanceof ArrayBuffer) {
+            this.currentIndex++;
             this.transferRate(data.byteLength);
             this.bytesReceived += data.byteLength;
             this.data.push(data);
@@ -115,9 +116,7 @@ class Receiver extends EventEmitter {
             }
             if (isLastInBlock(this.chunks!, this.currentIndex)) {
                 console.log('Last in block', this.currentIndex);
-                this.connection?.send(++this.currentIndex);
-            } else {
-                this.currentIndex++;
+                this.connection?.send(this.currentIndex);
             }
             return;
         }
