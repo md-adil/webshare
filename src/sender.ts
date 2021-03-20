@@ -100,18 +100,20 @@ class Sender extends EventEmitter {
             });
             return;
         }
-
-        this.connection?.send({
+        console.log('Sending meta data');
+        this.connection?.send(JSON.stringify({
             type: EventTypes.START,
             meta: {
                 name: this.file.name,
                 size: this.file.size,
                 type: this.file.type
             }
-        });
+        }));
     }
 
     handleData = (data: ReceiverEvent) => {
+        data = Number(data);
+        console.log({handle: data});
         if (data === EventTypes.CANCEL) {
             this.isCancelled = true;
             this.emit("cancelled");

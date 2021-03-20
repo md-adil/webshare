@@ -96,7 +96,8 @@ class Receiver extends EventEmitter {
         return !this.isCompleted && !this.isCompleted;
     }
 
-    private handleData = (data: ArrayBuffer | FileEvent) => {
+    private handleData = (data: ArrayBuffer | string) => {
+        console.log({data});
         if (this.isCancelled) {
             return;
         }
@@ -113,20 +114,23 @@ class Receiver extends EventEmitter {
                 return this.handleCompleted();
             }
             if (isLastInBlock(this.chunks!, this.currentIndex)) {
+                console.log('Last in block', this.currentIndex);
                 this.connection?.send(++this.currentIndex);
+            } else {
+                this.currentIndex++;
             }
             return;
         }
-
-        if (data.type === EventTypes.START) {
-            this.emit("incoming", data.meta);
-            this.meta = data.meta;
-            console.log("meta data received, sending back", this.connection);
-            this.chunks = getTotal(data.meta.size);
+        const response = JSON.parse(data) as FileEvent;
+        if (response.type === EventTypes.START) {
+            this.emit("incoming", response.meta);
+            this.meta = response.meta;
+            console.log("meta response received, sending back", this.connection);
+            this.chunks = getTotal(response.meta.size);
             this.connection?.send(this.currentIndex)
         }
 
-        if (data.type === EventTypes.CANCEL) {
+        if (response.type === EventTypes.CANCEL) {
             this.isCancelled = true;
             this.emit("cancel");
             this.close();
