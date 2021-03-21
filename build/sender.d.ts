@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { EventEmitter } from "events";
 import Peer, { DataConnection, PeerJSOption } from "peerjs";
-import { FileEvent } from "./types";
+import { ReceiverEvent } from "./types";
 interface Sender {
     on(event: "open", listener: (id: string) => void): this;
     on(event: "close", listener: () => void): this;
@@ -20,24 +20,21 @@ declare class Sender extends EventEmitter {
     peer: Peer;
     connection?: DataConnection;
     isConnected: boolean;
-    currentIndex: number;
-    lastChunk?: ArrayBuffer;
-    chunkSize: number;
     currentTime: number;
-    bytesSend: number;
     isCompleted: boolean;
     isCancelled: boolean;
+    chunks: number;
+    bytesSent: number;
     constructor(peerConfig: PeerJSOption, file: File, id?: string | undefined);
     get isActive(): boolean;
     handleConnection(connection: DataConnection): void;
     connected(): void;
-    handleData: (data: FileEvent) => void;
-    setChunkSize(): void;
+    handleData: (data: ReceiverEvent) => void;
     sendChunks(index: number): Promise<void>;
     handleSent(): void;
-    getChunks(): Promise<ArrayBuffer>;
+    getChunks(from: number, to: number): Promise<ArrayBuffer>;
     cancel(): this;
     close(): void;
 }
 export default Sender;
-//# sourceMappingURL=Sender.d.ts.map
+//# sourceMappingURL=sender.d.ts.map

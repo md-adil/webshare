@@ -1,10 +1,7 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const Sender_1 = __importDefault(require("./Sender"));
-const Receiver_1 = __importDefault(require("./Receiver"));
+require("babel-regenerator-runtime");
+const _1 = require("./");
 const util_1 = require("./util");
 const labelInfo = document.getElementById("label:info");
 const labelError = document.getElementById("label:error");
@@ -14,7 +11,7 @@ const input = document.getElementById("input:file");
 const labelProgress = document.getElementById("label:progress");
 const labelRate = document.getElementById("label:rate");
 const peerConfig = {
-    host: "192.168.43.155",
+    host: "192.168.0.112",
     port: 4112
 };
 let file;
@@ -23,13 +20,13 @@ input.addEventListener("change", (e) => {
         return;
     }
     file = input.files[0];
-    sendfile(input.files[0]);
+    sendFile(input.files[0]);
 });
 const generateId = () => (new Date()).getTime().toString();
 let sender;
-const sendfile = (file) => {
+const sendFile = (file) => {
     const id = "sender";
-    sender = new Sender_1.default(peerConfig, file, id);
+    sender = new _1.Sender(peerConfig, file, id);
     sender.on("open", (id) => {
         labelInfo.innerText = `Connection opened at ${id}`;
     });
@@ -59,7 +56,7 @@ const receiveFile = () => {
         labelError.innerText = "Connection id is required";
         return;
     }
-    receiver = new Receiver_1.default(peerConfig, id);
+    receiver = new _1.Receiver(peerConfig, id);
     receiver.on("open", rId => {
         labelInfo.innerText = `Receiver is open on ${rId}`;
     });

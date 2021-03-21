@@ -8,6 +8,7 @@ const events_1 = require("events");
 const types_1 = require("./types");
 const timer_1 = require("./timer");
 const log_1 = __importDefault(require("./log"));
+const chunks_1 = require("./chunks");
 class Receiver extends events_1.EventEmitter {
     constructor(peerConfig, id) {
         super();
@@ -20,7 +21,7 @@ class Receiver extends events_1.EventEmitter {
         this.isCompleted = false;
         this.isCancelled = false;
         this.handleData = (data) => {
-            var _a, _b;
+            var _a, _b, _c;
             if (this.isCancelled) {
                 return;
             }
@@ -28,30 +29,29 @@ class Receiver extends events_1.EventEmitter {
                 return;
             }
             if (data instanceof ArrayBuffer) {
-                this.transferRate(data.byteLength);
                 this.currentIndex++;
                 this.bytesReceived += data.byteLength;
                 this.data.push(data);
                 this.emit("progress", this.meta, this.bytesReceived);
-                (_a = this.connection) === null || _a === void 0 ? void 0 : _a.send({
-                    type: types_1.EventTypes.REQUEST,
-                    index: this.currentIndex
-                });
+                if (this.chunks === this.currentIndex) {
+                    (_a = this.connection) === null || _a === void 0 ? void 0 : _a.send(types_1.EventTypes.COMPLETED);
+                    return this.handleCompleted();
+                }
+                if (chunks_1.isLastInBlock(this.chunks, this.currentIndex)) {
+                    this.transferRate(data.byteLength);
+                    (_b = this.connection) === null || _b === void 0 ? void 0 : _b.send(this.currentIndex);
+                }
                 return;
             }
-            if (data.type === types_1.EventTypes.END) {
-                this.handleCompleted();
+            const response = JSON.parse(data);
+            if (response.type === types_1.EventTypes.START) {
+                this.emit("incoming", response.meta);
+                this.meta = response.meta;
+                console.log("meta response received, sending back", this.connection);
+                this.chunks = chunks_1.getTotal(response.meta.size);
+                (_c = this.connection) === null || _c === void 0 ? void 0 : _c.send(this.currentIndex);
             }
-            if (data.type === types_1.EventTypes.START) {
-                this.emit("incoming", data.meta);
-                this.meta = data.meta;
-                console.log("meta data received, sending back", this.connection);
-                (_b = this.connection) === null || _b === void 0 ? void 0 : _b.send({
-                    type: types_1.EventTypes.REQUEST,
-                    index: this.currentIndex
-                });
-            }
-            if (data.type === types_1.EventTypes.CANCEL) {
+            if (response.type === types_1.EventTypes.CANCEL) {
                 this.isCancelled = true;
                 this.emit("cancel");
                 this.close();
@@ -86,6 +86,7 @@ class Receiver extends events_1.EventEmitter {
     connect() {
         const connection = this.connection = this.peer.connect(this.id, {
             reliable: true,
+            serialization: 'none'
         });
         log_1.default("connecting...");
         connection.on("open", () => {
@@ -120,9 +121,9 @@ class Receiver extends events_1.EventEmitter {
             this.currentTime = time;
             return;
         }
-        const diff = (time - this.currentTime) / 1000;
+        const rate = chunks_1.getBytesPerSecond(this.currentTime, time);
         this.currentTime = time;
-        this.emit("transferrate", bytes / diff);
+        this.emit("transferrate", rate);
     }
     connected(connection) {
         connection.on("data", this.handleData);

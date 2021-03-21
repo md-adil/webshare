@@ -28,6 +28,7 @@ declare class Receiver extends EventEmitter {
     currentTime: number;
     isCompleted: boolean;
     isCancelled: boolean;
+    chunks?: number;
     constructor(peerConfig: PeerJSOption, id: string);
     open(): void;
     private connect;
@@ -41,4 +42,4 @@ declare class Receiver extends EventEmitter {
     download(file: File): void;
 }
 export default Receiver;
-//# sourceMappingURL=Receiver.d.ts.map
+//# sourceMappingURL=receiver.d.ts.map

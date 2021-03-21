@@ -12,7 +12,7 @@ const labelRate = document.getElementById("label:rate")!;
 
 
 const peerConfig = {
-    host: "localhost",
+    host: "192.168.0.112",
     port: 4112
 };
 

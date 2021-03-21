@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { EventTypes, FileEvent, IFileMeta } from "./types";
 import { sleep } from "./timer";
 import log from "./log";
-import { getTotal, isLastInBlock } from "./chunks";
+import { getBytesPerSecond, getTotal, isLastInBlock } from "./chunks";
 
 interface Receiver {
     on(event: "open", listener: (id: string) => void): this;
@@ -96,7 +96,7 @@ class Receiver extends EventEmitter {
         return !this.isCompleted && !this.isCompleted;
     }
 
-    private handleData = (data: ArrayBuffer | FileEvent) => {
+    private handleData = (data: ArrayBuffer | string) => {
         if (this.isCancelled) {
             return;
         }
@@ -104,7 +104,7 @@ class Receiver extends EventEmitter {
             return;
         }
         if (data instanceof ArrayBuffer) {
-            this.transferRate(data.byteLength);
+            this.currentIndex++;
             this.bytesReceived += data.byteLength;
             this.data.push(data);
             this.emit("progress", this.meta, this.bytesReceived);
@@ -113,20 +113,21 @@ class Receiver extends EventEmitter {
                 return this.handleCompleted();
             }
             if (isLastInBlock(this.chunks!, this.currentIndex)) {
-                this.connection?.send(++this.currentIndex);
+                this.transferRate(data.byteLength);
+                this.connection?.send(this.currentIndex);
             }
             return;
         }
-
-        if (data.type === EventTypes.START) {
-            this.emit("incoming", data.meta);
-            this.meta = data.meta;
-            console.log("meta data received, sending back", this.connection);
-            this.chunks = getTotal(data.meta.size);
+        const response = JSON.parse(data) as FileEvent;
+        if (response.type === EventTypes.START) {
+            this.emit("incoming", response.meta);
+            this.meta = response.meta;
+            console.log("meta response received, sending back", this.connection);
+            this.chunks = getTotal(response.meta.size);
             this.connection?.send(this.currentIndex)
         }
 
-        if (data.type === EventTypes.CANCEL) {
+        if (response.type === EventTypes.CANCEL) {
             this.isCancelled = true;
             this.emit("cancel");
             this.close();
@@ -139,9 +140,9 @@ class Receiver extends EventEmitter {
             this.currentTime = time;
             return; 
         }
-        const diff = (time - this.currentTime) / 1000;
+        const rate = getBytesPerSecond(this.currentTime, time);
         this.currentTime = time;
-        this.emit("transferrate", bytes / diff);
+        this.emit("transferrate", rate);
     }
 
     connected(connection: DataConnection) {
