@@ -1,4 +1,4 @@
-export declare const CHUNK_SIZE = 1600;
+export declare const CHUNK_SIZE = 16000;
 export declare const CHUNKS_PER_REQ = 64;
 export declare function getBlock(index: number): [number, number];
 export declare function getTotal(size: number): number;

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getBytesPerSecond = exports.isLastInBlock = exports.slice = exports.getTotal = exports.getBlock = exports.CHUNKS_PER_REQ = exports.CHUNK_SIZE = void 0;
-exports.CHUNK_SIZE = 1600;
+exports.CHUNK_SIZE = 16000;
 exports.CHUNKS_PER_REQ = 64;
 function getBlock(index) {
     const from = index * exports.CHUNK_SIZE;
